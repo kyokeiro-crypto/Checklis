@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Circle, RefreshCw, ClipboardList, ChevronDown, ChevronUp, Home, Building, FileText, KeyRound, Download, CloudUpload, User, FileSpreadsheet, Plus, LogOut, LogIn, Trash2, Users, Search, Eye, PenTool, Settings, CheckSquare } from 'lucide-react';
+import { CheckCircle2, Circle, RefreshCw, ClipboardList, ChevronDown, ChevronUp, Home, Building, FileText, KeyRound, Download, CloudUpload, User, FileSpreadsheet, Plus, LogOut, LogIn, Trash2, Users, Search, Eye, PenTool, Settings, CheckSquare, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { db, auth, signInWithGoogle, logOut } from './firebase';
@@ -132,6 +132,7 @@ const renderIcon = (iconName: string) => {
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [checklists, setChecklists] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -232,6 +233,7 @@ export default function App() {
       });
       setNewCustomerName('');
       setSelectedId(newRef.id);
+      setIsSidebarOpen(false); // Close sidebar on mobile after adding
     } catch (error) {
       console.error("Add customer error:", error);
       showAlert('エラー', '追加に失敗しました: ' + (error instanceof Error ? error.message : String(error)));
@@ -437,7 +439,7 @@ export default function App() {
   const progressPercentage = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex overflow-hidden">
       {/* Modal Overlay */}
       <AnimatePresence>
         {modalConfig.isOpen && (
@@ -485,14 +487,30 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-30 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0">
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col h-screen transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4 border-b border-slate-200">
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="bg-blue-600 p-1.5 rounded text-white">
-              <ClipboardList className="w-5 h-5" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="bg-blue-600 p-1.5 rounded text-white">
+                <ClipboardList className="w-5 h-5" />
+              </div>
+              <h1 className="font-bold text-slate-800">賃貸契約管理</h1>
             </div>
-            <h1 className="font-bold text-slate-800">賃貸契約管理</h1>
+            <button 
+              className="md:hidden p-1 text-slate-500 hover:bg-slate-100 rounded"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
           
           <form onSubmit={handleAddCustomer} className="flex space-x-2">
@@ -520,7 +538,10 @@ export default function App() {
               className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-colors ${
                 selectedId === checklist.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'
               }`}
-              onClick={() => setSelectedId(checklist.id)}
+              onClick={() => {
+                setSelectedId(checklist.id);
+                setIsSidebarOpen(false); // Close sidebar on mobile when selecting
+              }}
             >
               <div className="flex items-center space-x-2 truncate">
                 <User className="w-4 h-4 flex-shrink-0" />
@@ -562,65 +583,76 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto relative">
         {selectedChecklist ? (
           <>
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm px-8 py-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">{selectedChecklist.customerName}様</h2>
-                  <p className="text-sm text-slate-500 mt-1">リアルタイム同期中</p>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button 
-                    onClick={downloadExcel}
-                    className="flex items-center space-x-1 text-sm bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors px-3 py-1.5 rounded-md shadow-sm"
-                    title="Excelとしてダウンロード"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span className="hidden sm:inline">Excel出力</span>
-                  </button>
+            <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm px-4 sm:px-8 py-4 sm:py-6">
+              <div className="flex flex-col gap-3 sm:gap-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <button 
+                      onClick={() => setIsSidebarOpen(true)}
+                      className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md flex-shrink-0"
+                    >
+                      <Menu className="w-6 h-6" />
+                    </button>
+                    <div className="min-w-0">
+                      <h2 className="text-lg sm:text-2xl font-bold text-slate-800 truncate">{selectedChecklist.customerName}様</h2>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-0.5">リアルタイム同期中</p>
+                    </div>
+                  </div>
                   
-                  <button 
-                    onClick={uploadToDropbox}
-                    disabled={isUploading}
-                    className="flex items-center space-x-1 text-sm bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors px-3 py-1.5 rounded-md shadow-sm disabled:opacity-50"
-                    title="Dropboxへ直接保存"
-                  >
-                    <CloudUpload className="w-4 h-4" />
-                    <span className="hidden sm:inline">{isUploading ? '保存中...' : 'Dropbox保存'}</span>
-                  </button>
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <button 
+                      onClick={downloadExcel}
+                      className="flex items-center justify-center text-sm bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-md shadow-sm"
+                      title="Excelとしてダウンロード"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      <span className="hidden sm:inline sm:ml-1.5">Excel出力</span>
+                    </button>
+                    
+                    <button 
+                      onClick={uploadToDropbox}
+                      disabled={isUploading}
+                      className="flex items-center justify-center text-sm bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-md shadow-sm disabled:opacity-50"
+                      title="Dropboxへ直接保存"
+                    >
+                      <CloudUpload className="w-4 h-4" />
+                      <span className="hidden sm:inline sm:ml-1.5">{isUploading ? '保存中...' : 'Dropbox保存'}</span>
+                    </button>
 
-                  <button 
-                    onClick={resetProgress}
-                    className="flex items-center space-x-1 text-sm text-slate-500 hover:text-red-600 transition-colors px-3 py-1.5 rounded-md hover:bg-red-50"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+                    <button 
+                      onClick={resetProgress}
+                      className="flex items-center justify-center text-sm text-slate-500 hover:text-red-600 transition-colors w-9 h-9 sm:w-auto sm:px-3 sm:py-1.5 rounded-md hover:bg-red-50"
+                      title="進捗リセット"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-6">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-sm font-medium text-slate-600">タスク進捗</span>
-                  <span className="text-2xl font-bold text-blue-600">{progressPercentage}%</span>
+                <div className="mt-1 sm:mt-2">
+                  <div className="flex justify-between items-end mb-1.5 sm:mb-2">
+                    <span className="text-xs sm:text-sm font-medium text-slate-600">タスク進捗</span>
+                    <span className="text-lg sm:text-2xl font-bold text-blue-600 leading-none">{progressPercentage}%</span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 sm:h-3 overflow-hidden border border-slate-200">
+                    <motion.div 
+                      className="bg-blue-600 h-full rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercentage}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 sm:mt-2 text-right">
+                    {completedTasks} / {totalTasks} タスク完了
+                  </p>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
-                  <motion.div 
-                    className="bg-blue-600 h-3 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progressPercentage}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-2 text-right">
-                  {completedTasks} / {totalTasks} タスク完了
-                </p>
               </div>
             </header>
 
-            <div className="p-8 max-w-4xl mx-auto w-full space-y-6">
+            <div className="p-4 sm:p-8 max-w-4xl mx-auto w-full space-y-4 sm:space-y-6">
               {selectedChecklist.phases.map((phase: Phase) => {
                 const phaseCompletedTasks = phase.tasks.filter(t => t.completed).length;
                 const phaseTotalTasks = phase.tasks.length;
@@ -636,22 +668,22 @@ export default function App() {
                   >
                     <button 
                       onClick={() => togglePhase(phase.id)}
-                      className="w-full px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
+                      className="w-full px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-lg ${isPhaseComplete ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                           {renderIcon(phase.iconName)}
                         </div>
                         <div>
-                          <h2 className="text-lg font-bold text-slate-800">{phase.title}</h2>
-                          <p className="text-sm text-slate-500 mt-0.5">
+                          <h2 className="text-base sm:text-lg font-bold text-slate-800">{phase.title}</h2>
+                          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                             タスク進捗: {phaseCompletedTasks}/{phaseTotalTasks}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2 sm:space-x-4">
                         {isPhaseComplete && (
-                          <span className="text-xs font-medium bg-green-100 text-green-700 px-2.5 py-1 rounded-full">
+                          <span className="text-[10px] sm:text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">
                             完了
                           </span>
                         )}
@@ -670,16 +702,16 @@ export default function App() {
                           transition={{ duration: 0.3, ease: "easeInOut" }}
                           className="overflow-hidden"
                         >
-                          <div className="border-t border-slate-100 px-4 py-4 bg-slate-50/50">
+                          <div className="border-t border-slate-100 px-3 py-3 sm:px-4 sm:py-4 bg-slate-50/50">
                             
                             {/* Factors Section */}
                             {phase.factors && phase.factors.length > 0 && (
-                              <div className="mb-6 bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+                              <div className="mb-4 sm:mb-6 bg-white p-4 sm:p-5 rounded-lg border border-slate-200 shadow-sm">
                                 <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center">
                                   <Settings className="w-4 h-4 mr-1.5 text-slate-500"/>
                                   案件詳細設定 (Factors)
                                 </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                                   {phase.factors.map(factor => (
                                     <div key={factor.id} className="space-y-2">
                                       <label className="text-xs font-semibold text-slate-600">{factor.title}</label>
@@ -747,7 +779,7 @@ export default function App() {
                                   <div 
                                     key={task.id}
                                     onClick={() => toggleTask(phase.id, task.id)}
-                                    className={`group flex items-start space-x-4 p-4 cursor-pointer transition-all duration-200 ${
+                                    className={`group flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 cursor-pointer transition-all duration-200 ${
                                       index !== phase.tasks.length - 1 ? 'border-b border-slate-100' : ''
                                     } ${
                                       task.completed 
@@ -769,12 +801,12 @@ export default function App() {
                                       )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className={`text-base font-medium transition-colors duration-200 ${
+                                      <p className={`text-sm sm:text-base font-medium transition-colors duration-200 ${
                                         task.completed ? 'text-slate-500 line-through' : 'text-slate-800'
                                       }`}>
                                         {task.title}
                                       </p>
-                                      <p className={`text-sm mt-1 transition-colors duration-200 ${
+                                      <p className={`text-xs sm:text-sm mt-1 transition-colors duration-200 ${
                                         task.completed ? 'text-slate-400' : 'text-slate-600'
                                       }`}>
                                         {task.description}
@@ -795,10 +827,16 @@ export default function App() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400">
+          <div className="flex-1 flex items-center justify-center text-slate-400 p-4">
             <div className="text-center">
               <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>左側のメニューからお客様を選択するか、<br/>新しく追加してください。</p>
+              <p className="text-sm sm:text-base">左側のメニューからお客様を選択するか、<br/>新しく追加してください。</p>
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="mt-6 md:hidden px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium shadow-sm"
+              >
+                メニューを開く
+              </button>
             </div>
           </div>
         )}
