@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Circle, RefreshCw, ClipboardList, ChevronDown, ChevronUp, Home, Building, FileText, KeyRound, Download, CloudUpload, User, FileSpreadsheet, Plus, LogOut, LogIn, Trash2, Users, Search, Eye, PenTool, Settings, CheckSquare, Menu, X } from 'lucide-react';
+import { CheckCircle2, Circle, RefreshCw, ClipboardList, ChevronDown, ChevronUp, Home, Building, FileText, KeyRound, Download, CloudUpload, User, FileSpreadsheet, Plus, LogOut, LogIn, Trash2, Users, Search, Eye, PenTool, Settings, CheckSquare, Menu, X, Folder, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import { db, auth, signInWithGoogle, logOut } from './firebase';
@@ -13,7 +13,7 @@ type Task = {
   completed: boolean;
 };
 
-type FactorType = 'text' | 'select' | 'checkbox_group';
+type FactorType = 'text' | 'textarea' | 'select' | 'checkbox_group';
 
 type Factor = {
   id: string;
@@ -35,17 +35,43 @@ type Phase = {
 const initialData: Phase[] = [
   {
     id: 'phase-1',
-    title: '1. 顧客要望・身元確認',
+    title: '1. 顧客要望・身元確認 (ヒアリング)',
     iconName: 'user',
     factors: [
-      { id: 'f1-1', title: '国籍 / ビザ', type: 'select', value: '', options: ['日本国籍', '永住者', '就労ビザ', '留学生', '家族滞在'] },
-      { id: 'f1-2', title: '日本語能力', type: 'select', value: '', options: ['N1-N2 (コミュニケーション問題なし)', 'N3 (日常会話程度)', 'ゼロ (外国語サポート必須)'] },
-      { id: 'f1-3', title: '予算区間', type: 'text', value: '', placeholder: '例：5万円〜7万円/月' },
-      { id: 'f1-4', title: '必須設備・条件', type: 'checkbox_group', value: [], options: ['バストイレ別', 'オートロック', '駐車場必須', 'ペット可', '独立洗面台'] }
+      { id: 'f1-visit', title: '来店のきっかけ', type: 'checkbox_group', value: [], options: ['ご紹介', '引越し予定の地域にあった', '会社名を知っていた', '以前にも利用した', '今の住まいから近所', '会社から指定', '物件看板', '当社ホームページ', 'Facebook', 'Instagram', 'SUUMO', 'その他'] },
+      { id: 'f1-reason', title: '引っ越し理由', type: 'checkbox_group', value: [], options: ['入学', '就職', '転勤', '結婚', '別居', '短期入居', '独立', '契約満了', '現居改善', '家族増員', 'ペットを飼う', '通勤通学不便', '家賃を安く', '駐車場改善', '契約条件違反', 'その他'] },
+      { id: 'f1-name', title: 'お客様氏名', type: 'text', value: '', placeholder: '氏名' },
+      { id: 'f1-kana', title: 'ふりがな', type: 'text', value: '', placeholder: 'ふりがな' },
+      { id: 'f1-type', title: '個人/法人', type: 'select', value: '', options: ['個人', '法人'] },
+      { id: 'f1-gender', title: '性別', type: 'select', value: '', options: ['男', '女'] },
+      { id: 'f1-birth', title: '生年月日・年齢', type: 'text', value: '', placeholder: '例: 1990年1月1日 (30歳)' },
+      { id: 'f1-phone', title: '携帯電話', type: 'text', value: '', placeholder: '090-0000-0000' },
+      { id: 'f1-address', title: 'ご住所', type: 'text', value: '', placeholder: '〒' },
+      { id: 'f1-email', title: 'メールアドレス', type: 'text', value: '', placeholder: 'example@email.com' },
+      { id: 'f1-relation', title: '借主との関係', type: 'select', value: '', options: ['本人(借主)', '夫', '妻', '子供', '親', '兄弟', '親戚', '上司・同僚', '代理人', '友人', '社宅担当者', '社宅代行業者', '法人入居者', 'その他'] },
+      { id: 'f1-job', title: '職業について', type: 'select', value: '', options: ['学生', '正社員', 'アルバイト・パート', '契約社員・準社員', '役員・経営者', '無職', 'その他'] },
+      { id: 'f1-jobtype', title: '職業種別', type: 'select', value: '', options: ['会社員', '公務員', 'フリーター', '自営業', '求職', 'その他'] },
+      { id: 'f1-company', title: '勤務先・学校名', type: 'text', value: '', placeholder: '名称' },
+      { id: 'f1-company-addr', title: '勤務先所在地・TEL', type: 'text', value: '', placeholder: '所在地 / TEL' },
+      { id: 'f1-income', title: '税込年収・勤続年数', type: 'text', value: '', placeholder: '例: 400万円 / 3年' },
+      { id: 'f1-occupants', title: '入居者構成', type: 'checkbox_group', value: [], options: ['1名', '2名以上', '同居(同棲)', '夫婦', '夫婦・子', '親・夫婦・子', '母・子', '高齢者', '身体障がい者'] },
+      { id: 'f1-guarantor', title: '保証人の予定', type: 'select', value: '', options: ['親', '兄弟', '子供', '親戚', '上司・同僚', '友達', '検討中', '保証人不要物件', 'その他'] },
+      { id: 'f1-area', title: '希望区', type: 'checkbox_group', value: [], options: ['中央', '西', '手稲', '北', '東', '白石', '厚別', '豊平', '清田', '南', '近郊', 'その他'] },
+      { id: 'f1-line', title: '希望沿線・駅・徒歩', type: 'text', value: '', placeholder: '例: 南北線 さっぽろ駅 徒歩10分以内' },
+      { id: 'f1-buildtype', title: '建物種類', type: 'checkbox_group', value: [], options: ['アパート', 'マンション', '分譲リース', '戸建', 'テラスハウス', '学生寮', 'ウィークリー型', 'その他'] },
+      { id: 'f1-layout', title: '間取りタイプ', type: 'checkbox_group', value: [], options: ['1R・1K', '1LDK', '2LDK', '3LDK', '4LDK', '5LDK以上'] },
+      { id: 'f1-rent', title: '希望家賃 (共益費・駐車代込)', type: 'text', value: '', placeholder: '上限 〇〇 万円まで' },
+      { id: 'f1-parking', title: '駐車場・車タイプ', type: 'text', value: '', placeholder: '例: 要1台 / 普通乗用' },
+      { id: 'f1-special', title: '特別条件', type: 'checkbox_group', value: [], options: ['犬', '猫', '楽器', '短期契約', '学校区', '対面K', 'エアコン', '2階以上', '都市ガス', '高層階', 'AL', 'テナント居抜き'] },
+      { id: 'f1-timing', title: '引越時期', type: 'text', value: '', placeholder: '例: 2024年4月上旬' },
+      { id: 'f1-current', title: '現住居分類', type: 'select', value: '', options: ['賃貸', '持家', '社宅', '寮', '親元', '親戚宅', '友人宅', 'その他'] },
+      { id: 'f1-current-rent', title: '現住居の家賃・間取り', type: 'text', value: '', placeholder: '例: 1LDK / 6万円' },
+      { id: 'f1-current-good', title: '現住居の良い点', type: 'textarea', value: '', placeholder: '良い点をご記入ください' },
+      { id: 'f1-current-bad', title: '現住居の不満な点', type: 'textarea', value: '', placeholder: '不満な点をご記入ください' },
+      { id: 'f1-idcopy', title: '身分証コピー取得', type: 'checkbox_group', value: [], options: ['在留カード', 'パスポート', '顔写真', '運転免許証', '銀行通帳', '住民票', '車検証', 'その他'] },
     ],
     tasks: [
-      { id: 't1-1', title: 'ヒアリング実施', description: '希望条件、引越理由、入居時期の確認', completed: false },
-      { id: 't1-2', title: '身分証コピー取得', description: '在留カード、パスポート等の事前確認', completed: false },
+      { id: 't1-1', title: 'ヒアリングシート記入', description: 'お客様の希望条件、引越理由、入居時期の詳細を確認', completed: false },
     ]
   },
   {
@@ -133,11 +159,19 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   
   const [checklists, setChecklists] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
+
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    '01-問合せ中案件': true,
+    '02-申込中物件': true,
+    '03-契約済み物件': true,
+    '04-未成約の歴史アーカイブ': false,
+  });
 
   const [expandedPhases, setExpandedPhases] = useState<Record<string, boolean>>({
     'phase-1': true,
@@ -227,6 +261,7 @@ export default function App() {
       await setDoc(newRef, {
         customerName: newCustomerName.trim(),
         phasesData: JSON.stringify(initialData),
+        status: 'active',
         createdBy: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -238,6 +273,22 @@ export default function App() {
       console.error("Add customer error:", error);
       showAlert('エラー', '追加に失敗しました: ' + (error instanceof Error ? error.message : String(error)));
     }
+  };
+
+  const handleArchiveCustomer = async (id: string, name: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'archived' ? 'active' : 'archived';
+    const actionName = newStatus === 'archived' ? 'アーカイブ' : '復元';
+    showConfirm(`${actionName}の確認`, `「${name}」を${actionName}しますか？`, async () => {
+      try {
+        await updateDoc(doc(db, 'checklists', id), {
+          status: newStatus,
+          updatedAt: serverTimestamp()
+        });
+      } catch (error) {
+        console.error("Archive customer error:", error);
+        showAlert('エラー', `${actionName}に失敗しました: ` + (error instanceof Error ? error.message : String(error)));
+      }
+    });
   };
 
   const handleDeleteCustomer = async (id: string, name: string) => {
@@ -265,6 +316,27 @@ export default function App() {
   };
 
   const selectedChecklist = checklists.find(c => c.id === selectedId);
+
+  const getCategory = (checklist: any) => {
+    if (checklist.status === 'archived') return '04-未成約の歴史アーカイブ';
+    
+    const firstIncompletePhaseIndex = checklist.phases.findIndex((p: Phase) => !p.tasks.every(t => t.completed));
+    
+    if (firstIncompletePhaseIndex === -1) return '03-契約済み物件';
+    if (firstIncompletePhaseIndex <= 2) return '01-問合せ中案件';
+    if (firstIncompletePhaseIndex === 3) return '02-申込中物件';
+    return '03-契約済み物件';
+  };
+
+  const categories = ['01-問合せ中案件', '02-申込中物件', '03-契約済み物件', '04-未成約の歴史アーカイブ'];
+  const groupedChecklists = categories.reduce((acc, cat) => {
+    acc[cat] = checklists.filter(c => getCategory(c) === cat);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
+  };
 
   const toggleTask = (phaseId: string, taskId: string) => {
     if (!selectedChecklist) return;
@@ -347,9 +419,9 @@ export default function App() {
     factorSheet['!cols'] = [{ wch: 20 }, { wch: 30 }, { wch: 40 }];
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, taskSheet, "進捗状況(Tasks)");
+    XLSX.utils.book_append_sheet(workbook, taskSheet, "進捗状況");
     if (factorData.length > 0) {
-      XLSX.utils.book_append_sheet(workbook, factorSheet, "案件詳細(Factors)");
+      XLSX.utils.book_append_sheet(workbook, factorSheet, "案件詳細");
     }
     
     return workbook;
@@ -359,6 +431,32 @@ export default function App() {
     const workbook = generateExcelWorkbook();
     if (!workbook || !selectedChecklist) return;
     const fileName = `${selectedChecklist.customerName}様_賃貸契約進捗.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
+  const downloadHearingSheet = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!selectedChecklist) return;
+    
+    const phase1 = selectedChecklist.phases.find((p: Phase) => p.id === 'phase-1');
+    if (!phase1 || !phase1.factors) return;
+
+    const data: any[] = [];
+    phase1.factors.forEach((factor: Factor) => {
+      let valStr = factor.value;
+      if (Array.isArray(factor.value)) valStr = factor.value.join('、 ');
+      data.push({
+        '項目': factor.title,
+        '内容': valStr || ''
+      });
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    worksheet['!cols'] = [{ wch: 30 }, { wch: 60 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "ヒアリングシート");
+    
+    const fileName = `${selectedChecklist.customerName}様_ヒアリングシート.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
 
@@ -496,7 +594,7 @@ export default function App() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col h-screen transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col h-screen transform transition-transform duration-300 ease-in-out md:relative ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${isDesktopSidebarOpen ? 'md:translate-x-0 md:w-64' : 'md:-translate-x-full md:w-0 md:border-none overflow-hidden'}`}>
         <div className="p-4 border-b border-slate-200">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
@@ -531,38 +629,82 @@ export default function App() {
           </form>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {checklists.map(checklist => (
-            <div
-              key={checklist.id}
-              className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-colors ${
-                selectedId === checklist.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'
-              }`}
-              onClick={() => {
-                setSelectedId(checklist.id);
-                setIsSidebarOpen(false); // Close sidebar on mobile when selecting
-              }}
-            >
-              <div className="flex items-center space-x-2 truncate">
-                <User className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm font-medium truncate">{checklist.customerName}</span>
+        <div className="flex-1 overflow-y-auto p-2 space-y-4">
+          {categories.map(category => {
+            const items = groupedChecklists[category] || [];
+            if (items.length === 0 && category !== '01-問合せ中案件') return null;
+            
+            return (
+              <div key={category} className="space-y-1">
+                <button 
+                  onClick={() => toggleCategory(category)}
+                  className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors"
+                >
+                  <div className="flex items-center space-x-1.5">
+                    <Folder className="w-3.5 h-3.5" />
+                    <span>{category}</span>
+                  </div>
+                  {expandedCategories[category] ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+                
+                <AnimatePresence initial={false}>
+                  {expandedCategories[category] && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-0.5"
+                    >
+                      {items.map(checklist => (
+                        <div
+                          key={checklist.id}
+                          className={`group flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-colors ml-2 ${
+                            selectedId === checklist.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                          onClick={() => {
+                            setSelectedId(checklist.id);
+                            setIsSidebarOpen(false);
+                          }}
+                        >
+                          <div className="flex items-center space-x-2 truncate">
+                            <User className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm font-medium truncate">{checklist.customerName}</span>
+                          </div>
+                          <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleArchiveCustomer(checklist.id, checklist.customerName, checklist.status);
+                              }}
+                              className="p-1 text-slate-400 hover:text-blue-500 transition-colors"
+                              title={checklist.status === 'archived' ? '復元' : 'アーカイブ'}
+                            >
+                              <Archive className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCustomer(checklist.id, checklist.customerName);
+                              }}
+                              className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                              title="削除"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {items.length === 0 && (
+                        <div className="px-5 py-2 text-xs text-slate-400 italic">
+                          案件がありません
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteCustomer(checklist.id, checklist.customerName);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 transition-opacity"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
-          {checklists.length === 0 && (
-            <div className="p-4 text-center text-sm text-slate-500">
-              お客様が登録されていません
-            </div>
-          )}
+            );
+          })}
         </div>
 
         <div className="p-4 border-t border-slate-200">
@@ -593,6 +735,12 @@ export default function App() {
                     <button 
                       onClick={() => setIsSidebarOpen(true)}
                       className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md flex-shrink-0"
+                    >
+                      <Menu className="w-6 h-6" />
+                    </button>
+                    <button 
+                      onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
+                      className="hidden md:block p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-md flex-shrink-0"
                     >
                       <Menu className="w-6 h-6" />
                     </button>
@@ -632,22 +780,51 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="mt-1 sm:mt-2">
-                  <div className="flex justify-between items-end mb-1.5 sm:mb-2">
-                    <span className="text-xs sm:text-sm font-medium text-slate-600">タスク進捗</span>
-                    <span className="text-lg sm:text-2xl font-bold text-blue-600 leading-none">{progressPercentage}%</span>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 sm:h-3 overflow-hidden border border-slate-200">
-                    <motion.div 
-                      className="bg-blue-600 h-full rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progressPercentage}%` }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
+                <div className="mt-6 sm:mt-10 mb-4 sm:mb-8 px-2 sm:px-8">
+                  <div className="relative flex justify-between items-center w-full">
+                    {/* Background Line */}
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 sm:h-1.5 bg-slate-200 rounded-full" />
+                    {/* Active Line */}
+                    <div 
+                      className="absolute left-0 top-1/2 -translate-y-1/2 h-1 sm:h-1.5 bg-green-500 rounded-full transition-all duration-500 ease-out" 
+                      style={{ width: `${Math.min(100, (selectedChecklist.phases.filter((p: Phase) => p.tasks.length > 0 && p.tasks.every(t => t.completed)).length / (selectedChecklist.phases.length - 1)) * 100)}%` }} 
                     />
+                    
+                    {/* Points */}
+                    {selectedChecklist.phases.map((phase: Phase, index: number) => {
+                      const isComplete = phase.tasks.length > 0 && phase.tasks.every(t => t.completed);
+                      const isCurrent = !isComplete && (index === 0 || selectedChecklist.phases[index - 1].tasks.every((t: Task) => t.completed));
+                      
+                      return (
+                        <div 
+                          key={phase.id} 
+                          className="relative z-10 flex flex-col items-center cursor-pointer group"
+                          onClick={() => {
+                            const el = document.getElementById(phase.id);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              if (!expandedPhases[phase.id]) {
+                                togglePhase(phase.id);
+                              }
+                            }
+                          }}
+                        >
+                          <div className={`w-6 h-6 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 sm:border-4 transition-colors duration-300 group-hover:scale-110 ${
+                            isComplete 
+                              ? 'bg-green-500 border-green-100 text-white' 
+                              : isCurrent 
+                                ? 'bg-blue-600 border-blue-100 text-white shadow-md shadow-blue-200' 
+                                : 'bg-white border-slate-200 text-slate-400'
+                          }`}>
+                            {isComplete ? <CheckCircle2 className="w-3 h-3 sm:w-5 sm:h-5" /> : <span className="text-[10px] sm:text-base font-bold">{index + 1}</span>}
+                          </div>
+                          <span className={`hidden md:block absolute top-12 text-xs font-medium whitespace-nowrap mt-1 ${isComplete ? 'text-green-600' : isCurrent ? 'text-blue-600' : 'text-slate-400'}`}>
+                            {phase.title.split('.')[1]?.trim() || phase.title}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5 sm:mt-2 text-right">
-                    {completedTasks} / {totalTasks} タスク完了
-                  </p>
                 </div>
               </div>
             </header>
@@ -662,7 +839,8 @@ export default function App() {
                 return (
                   <div 
                     key={phase.id} 
-                    className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-colors duration-300 ${
+                    id={phase.id}
+                    className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-colors duration-300 scroll-mt-24 ${
                       isPhaseComplete ? 'border-green-200 bg-green-50/30' : 'border-slate-200'
                     }`}
                   >
@@ -670,15 +848,23 @@ export default function App() {
                       onClick={() => togglePhase(phase.id)}
                       className="w-full px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-left"
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-lg ${isPhaseComplete ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <div className={`p-2 rounded-lg flex-shrink-0 ${isPhaseComplete ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                           {renderIcon(phase.iconName)}
                         </div>
-                        <div>
-                          <h2 className="text-base sm:text-lg font-bold text-slate-800">{phase.title}</h2>
-                          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                            タスク進捗: {phaseCompletedTasks}/{phaseTotalTasks}
-                          </p>
+                        <div className="flex-1 min-w-0 pr-2 sm:pr-4">
+                          <h2 className="text-base sm:text-lg font-bold text-slate-800 truncate">{phase.title}</h2>
+                          <div className="mt-1.5 sm:mt-2 flex items-center gap-2 sm:gap-3">
+                            <div className="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-500 ${isPhaseComplete ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                style={{ width: `${phaseTotalTasks > 0 ? (phaseCompletedTasks / phaseTotalTasks) * 100 : 0}%` }} 
+                              />
+                            </div>
+                            <span className="text-[10px] sm:text-xs font-medium text-slate-500 whitespace-nowrap">
+                              {phaseCompletedTasks} / {phaseTotalTasks}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 sm:space-x-4">
@@ -707,13 +893,24 @@ export default function App() {
                             {/* Factors Section */}
                             {phase.factors && phase.factors.length > 0 && (
                               <div className="mb-4 sm:mb-6 bg-white p-4 sm:p-5 rounded-lg border border-slate-200 shadow-sm">
-                                <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center">
-                                  <Settings className="w-4 h-4 mr-1.5 text-slate-500"/>
-                                  案件詳細設定 (Factors)
-                                </h4>
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="text-sm font-bold text-slate-700 flex items-center">
+                                    <Settings className="w-4 h-4 mr-1.5 text-slate-500"/>
+                                    案件詳細設定
+                                  </h4>
+                                  {phase.id === 'phase-1' && (
+                                    <button
+                                      onClick={downloadHearingSheet}
+                                      className="flex items-center space-x-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2.5 py-1.5 rounded transition-colors border border-blue-200"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                      <span>シート出力</span>
+                                    </button>
+                                  )}
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                                   {phase.factors.map(factor => (
-                                    <div key={factor.id} className="space-y-2">
+                                    <div key={factor.id} className={`space-y-2 ${factor.type === 'textarea' || factor.type === 'checkbox_group' ? 'md:col-span-2' : ''}`}>
                                       <label className="text-xs font-semibold text-slate-600">{factor.title}</label>
                                       
                                       {factor.type === 'text' && (
@@ -722,6 +919,15 @@ export default function App() {
                                           value={factor.value || ''} 
                                           onChange={(e) => handleFactorChange(phase.id, factor.id, e.target.value)} 
                                           className="w-full text-sm px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow" 
+                                          placeholder={factor.placeholder} 
+                                        />
+                                      )}
+
+                                      {factor.type === 'textarea' && (
+                                        <textarea 
+                                          value={factor.value || ''} 
+                                          onChange={(e) => handleFactorChange(phase.id, factor.id, e.target.value)} 
+                                          className="w-full text-sm px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow resize-y min-h-[80px]" 
                                           placeholder={factor.placeholder} 
                                         />
                                       )}
@@ -772,7 +978,7 @@ export default function App() {
                             <div>
                               <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center">
                                 <CheckSquare className="w-4 h-4 mr-1.5 text-slate-500"/>
-                                基本タスク (Tasks)
+                                基本タスク
                               </h4>
                               <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
                                 {phase.tasks.map((task, index) => (
