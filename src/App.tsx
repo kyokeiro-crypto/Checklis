@@ -14,7 +14,7 @@ type Task = {
   data?: any;
 };
 
-type FactorType = 'text' | 'textarea' | 'select' | 'checkbox_group';
+type FactorType = 'text' | 'textarea' | 'select' | 'checkbox_group' | 'date' | 'fee_timing_group';
 
 type Factor = {
   id: string;
@@ -47,7 +47,7 @@ const initialData: Phase[] = [
       { id: 'f1-kana', title: 'ふりがな', type: 'text', value: '', placeholder: 'ふりがな' },
       { id: 'f1-type', title: '個人/法人', type: 'select', value: '', options: ['個人', '法人'] },
       { id: 'f1-gender', title: '性別', type: 'select', value: '', options: ['男', '女'] },
-      { id: 'f1-birth', title: '生年月日・年齢', type: 'text', value: '', placeholder: '例: 1990年1月1日 (30歳)' },
+      { id: 'f1-birth', title: '生年月日', type: 'date', value: '' },
       { id: 'f1-phone', title: '携帯電話', type: 'text', value: '', placeholder: '090-0000-0000' },
       { id: 'f1-address', title: 'ご住所', type: 'text', value: '', placeholder: '〒' },
       { id: 'f1-email', title: 'メールアドレス', type: 'text', value: '', placeholder: 'example@email.com' },
@@ -88,7 +88,7 @@ const initialData: Phase[] = [
     title: '2. 物件選定・提案',
     iconName: 'search',
     factors: [
-      { id: 'f2-1', title: '初期費用希望', type: 'checkbox_group', value: [], options: ['敷金ゼロ', '礼金ゼロ', 'フリーレント希望', 'ネット無料', '部屋清掃費(契約時)', '部屋清掃費(退去時)', '消毒代(契約時)', '消毒代(退去時)', 'FF清掃費(契約時)', 'FF清掃費(退去時)', 'エアコン清掃費(契約時)', 'エアコン清掃費(退去時)'] },
+      { id: 'f2-1', title: '初期費用希望', type: 'fee_timing_group', value: [] },
     ],
     tasks: [
       { id: 't2-2', title: '物件選定・確認', description: '問い合わせた物件情報をアーカイブとして記録します', completed: false, data: { properties: [] } },
@@ -99,26 +99,19 @@ const initialData: Phase[] = [
     title: '3. 内覧準備・現地確認',
     iconName: 'eye',
     factors: [
-      { id: 'f3-2', title: '現地チェック項目', type: 'checkbox_group', value: [], options: ['ゴミ置き場確認', '採光・防音確認', '携帯電波確認', '部屋の向き・日当たり', 'Wi-Fi状況', '水道・電気・ガスメーターの位置', '居室・寝室の照明有無', 'キッチンコンロ有無', '換気扇', '浴室追い焚き有無', '浴室乾燥機有無'] },
+      { id: 'f3-2', title: '現地チェック項目', type: 'checkbox_group', value: [], options: ['ゴミ置き場確認', '採光・防音確認', '携帯電波確認', '部屋の向き・日当たり', 'Wi-Fi状況', '水道・電気・ガスメーターの位置', '居室・寝室の照明', 'キッチンコンロ', '換気扇', '浴室追い焚き', '浴室乾燥機', 'エアコン', '暖房 (灯油/ガス)', '給湯器'] },
     ],
     tasks: [
       { id: 't3-1', title: '内覧予約・鍵情報確認', description: '管理会社への空室・内覧可否の確認と、鍵の手配方法（来店借用・現地暗証番号など）を記録します。', completed: false, data: { viewings: [] } },
-      { id: 't3-2', title: '現地案内', description: 'お客様と待ち合わせ、物件のメリット・デメリットを説明', completed: false },
     ]
   },
   {
     id: 'phase-4',
     title: '4. 申込・審査',
     iconName: 'file-text',
-    factors: [
-      { id: 'f4-1', title: '申込方法', type: 'select', value: '', options: ['WEB電子申込 (ITANDI BB等)', '紙・FAX申込'] },
-      { id: 'f4-2', title: '必要書類', type: 'checkbox_group', value: [], options: ['在留カード', '収入証明 (源泉徴収票等)', '住民票', '内定通知書'] },
-      { id: 'f4-idcopy', title: '身分証コピー取得', type: 'checkbox_group', value: [], options: ['在留カード', 'パスポート', '顔写真', '運転免許証', '銀行通帳', '住民票', '車検証', 'その他'] },
-      { id: 'f4-idcopy-other', title: 'その他の身分証詳細', type: 'text', value: '', placeholder: '具体的な身分証をご記入ください' },
-    ],
+    factors: [],
     tasks: [
-      { id: 't4-1', title: '申込書記入', description: 'お客様へ申込書の記入依頼、必要書類の回収', completed: false },
-      { id: 't4-2', title: '保証会社審査', description: '保証会社からの本人確認電話の案内、審査承認の取得', completed: false },
+      { id: 't4-1', title: '申込・審査管理', description: '物件の申込手続き（申込方法・必要書類）と審査状況を管理します。', completed: false, data: { applications: [] } },
     ]
   },
   {
@@ -160,6 +153,27 @@ const renderIcon = (iconName: string) => {
     case 'pen-tool': return <PenTool className="w-5 h-5" />;
     case 'key-round': return <KeyRound className="w-5 h-5" />;
     default: return <ClipboardList className="w-5 h-5" />;
+  }
+};
+
+const calculateAgeAndEra = (dateString: string) => {
+  if (!dateString) return '';
+  const birthDate = new Date(dateString);
+  if (isNaN(birthDate.getTime())) return '';
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat('ja-JP-u-ca-japanese', { era: 'long', year: 'numeric' });
+    const eraYear = formatter.format(birthDate).replace('年', '');
+    return `${eraYear}年 (${age}歳)`;
+  } catch (e) {
+    return `${age}歳`;
   }
 };
 
@@ -545,6 +559,75 @@ export default function App() {
 
     const newViewings = task.data.viewings.filter((v: any) => v.id !== viewingId);
     handleTaskDataChange(phaseId, taskId, { ...task.data, viewings: newViewings });
+  };
+
+  const getAvailableProperties = () => {
+    if (!selectedChecklist) return [];
+    const props: { name: string, room: string }[] = [];
+    
+    const p2 = selectedChecklist.phases.find((p: Phase) => p.id === 'phase-2');
+    const t2_2 = p2?.tasks.find((t: Task) => t.id === 't2-2');
+    if (t2_2?.data?.properties) {
+      t2_2.data.properties.forEach((p: any) => {
+        if (p.propertyName) props.push({ name: p.propertyName, room: p.roomNumber || '' });
+      });
+    }
+
+    const p3 = selectedChecklist.phases.find((p: Phase) => p.id === 'phase-3');
+    const t3_1 = p3?.tasks.find((t: Task) => t.id === 't3-1');
+    if (t3_1?.data?.viewings) {
+      t3_1.data.viewings.forEach((v: any) => {
+        if (v.propertyName) {
+          if (!props.some(existing => existing.name === v.propertyName && existing.room === v.roomNumber)) {
+            props.push({ name: v.propertyName, room: v.roomNumber || '' });
+          }
+        }
+      });
+    }
+    return props;
+  };
+
+  const handleAddApplication = (phaseId: string, taskId: string) => {
+    if (!selectedChecklist) return;
+    const phase = selectedChecklist.phases.find((p: Phase) => p.id === phaseId);
+    const task = phase?.tasks.find((t: Task) => t.id === taskId);
+    if (!task) return;
+    const applications = task.data?.applications || [];
+    handleTaskDataChange(phaseId, taskId, {
+      ...task.data,
+      applications: [...applications, { 
+        id: Date.now().toString(), 
+        propertyName: '', 
+        roomNumber: '', 
+        applicationMethod: '', 
+        documents: [],
+        screeningStatus: '審査中',
+        screeningNotes: ''
+      }]
+    });
+  };
+
+  const handleUpdateApplication = (phaseId: string, taskId: string, appId: string, field: string, value: any) => {
+    if (!selectedChecklist) return;
+    const phase = selectedChecklist.phases.find((p: Phase) => p.id === phaseId);
+    const task = phase?.tasks.find((t: Task) => t.id === taskId);
+    if (!task || !task.data || !task.data.applications) return;
+
+    const newApps = task.data.applications.map((a: any) => 
+      a.id === appId ? { ...a, [field]: value } : a
+    );
+    
+    handleTaskDataChange(phaseId, taskId, { ...task.data, applications: newApps });
+  };
+
+  const handleDeleteApplication = (phaseId: string, taskId: string, appId: string) => {
+    if (!selectedChecklist) return;
+    const phase = selectedChecklist.phases.find((p: Phase) => p.id === phaseId);
+    const task = phase?.tasks.find((t: Task) => t.id === taskId);
+    if (!task || !task.data || !task.data.applications) return;
+
+    const newApps = task.data.applications.filter((a: any) => a.id !== appId);
+    handleTaskDataChange(phaseId, taskId, { ...task.data, applications: newApps });
   };
 
   const toggleTask = (phaseId: string, taskId: string) => {
@@ -1437,6 +1520,151 @@ export default function App() {
                                             <span>内覧物件を追加</span>
                                           </button>
                                         </div>
+                                      ) : task.id === 't4-1' ? (
+                                        <div className="mt-3 space-y-4" onClick={e => e.stopPropagation()}>
+                                          <p className="text-sm text-slate-500 mb-2">{task.description}</p>
+                                          {task.data?.applications?.map((app: any) => {
+                                            const isArchived = app.screeningStatus === '審査落ち(アーカイブ)';
+                                            return (
+                                            <div key={app.id} className={`bg-white border rounded-lg p-4 shadow-sm relative group transition-all ${isArchived ? 'border-slate-200 bg-slate-50 opacity-75' : 'border-slate-200'}`}>
+                                              <button 
+                                                onClick={() => handleDeleteApplication(phase.id, task.id, app.id)}
+                                                className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                              >
+                                                <X className="w-4 h-4" />
+                                              </button>
+                                              
+                                              {isArchived && (
+                                                <div className="absolute top-2 right-10 bg-slate-200 text-slate-600 text-xs px-2 py-1 rounded-md font-medium">
+                                                  アーカイブ済
+                                                </div>
+                                              )}
+
+                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                                                <div className="sm:col-span-2">
+                                                  <label className="block text-xs font-medium text-slate-500 mb-1">物件選択 (過去の物件から自動入力)</label>
+                                                  <select 
+                                                    className="w-full text-sm px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white mb-2"
+                                                    onChange={(e) => {
+                                                      if (e.target.value) {
+                                                        const [name, room] = e.target.value.split('|||');
+                                                        handleUpdateApplication(phase.id, task.id, app.id, 'propertyName', name);
+                                                        handleUpdateApplication(phase.id, task.id, app.id, 'roomNumber', room);
+                                                      }
+                                                    }}
+                                                  >
+                                                    <option value="">-- 物件を選択 --</option>
+                                                    {getAvailableProperties().map((p, idx) => (
+                                                      <option key={idx} value={`${p.name}|||${p.room}`}>{p.name} {p.room}</option>
+                                                    ))}
+                                                  </select>
+                                                </div>
+                                                <div>
+                                                  <label className="block text-xs font-medium text-slate-500 mb-1">物件名</label>
+                                                  <input 
+                                                    type="text" 
+                                                    className="w-full text-sm px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
+                                                    placeholder="例: メゾン〇〇"
+                                                    value={app.propertyName || ''}
+                                                    onChange={(e) => handleUpdateApplication(phase.id, task.id, app.id, 'propertyName', e.target.value)}
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <label className="block text-xs font-medium text-slate-500 mb-1">号室</label>
+                                                  <input 
+                                                    type="text" 
+                                                    className="w-full text-sm px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
+                                                    placeholder="例: 101"
+                                                    value={app.roomNumber || ''}
+                                                    onChange={(e) => handleUpdateApplication(phase.id, task.id, app.id, 'roomNumber', e.target.value)}
+                                                  />
+                                                </div>
+                                              </div>
+
+                                              <div className="mb-4">
+                                                <label className="block text-xs font-medium text-slate-500 mb-2">申込方法</label>
+                                                <div className="flex flex-wrap gap-4">
+                                                  {['WEB電子申込 (ITANDI BB等)', '紙・FAX申込', '紙・郵送申込'].map(method => (
+                                                    <label key={method} className="flex items-center space-x-2 cursor-pointer">
+                                                      <input 
+                                                        type="radio" 
+                                                        name={`appMethod-${app.id}`} 
+                                                        value={method} 
+                                                        checked={app.applicationMethod === method} 
+                                                        onChange={(e) => handleUpdateApplication(phase.id, task.id, app.id, 'applicationMethod', e.target.value)} 
+                                                        className="text-blue-600 focus:ring-blue-500 w-4 h-4" 
+                                                      />
+                                                      <span className="text-sm text-slate-700">{method}</span>
+                                                    </label>
+                                                  ))}
+                                                </div>
+                                              </div>
+
+                                              <div className="mb-4">
+                                                <label className="block text-xs font-medium text-slate-500 mb-2">必要書類・身分証コピー取得</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                  {['身分証明書(表裏)', '健康保険証', '収入証明書', '在留カード', '学生証', '内定証明書', '銀行通帳'].map(doc => {
+                                                    const isChecked = (app.documents || []).includes(doc);
+                                                    return (
+                                                      <label key={doc} className={`flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors ${isChecked ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                                        <input 
+                                                          type="checkbox" 
+                                                          className="hidden" 
+                                                          checked={isChecked} 
+                                                          onChange={(e) => {
+                                                            const current = app.documents || [];
+                                                            const next = e.target.checked ? [...current, doc] : current.filter((c: string) => c !== doc);
+                                                            handleUpdateApplication(phase.id, task.id, app.id, 'documents', next);
+                                                          }} 
+                                                        />
+                                                        <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isChecked ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                                                          {isChecked && <CheckCircle2 className="w-2.5 h-2.5 text-white" />}
+                                                        </div>
+                                                        <span>{doc}</span>
+                                                      </label>
+                                                    )
+                                                  })}
+                                                </div>
+                                              </div>
+
+                                              <div className="bg-blue-50 p-3 rounded-md border border-blue-100 space-y-3">
+                                                <p className="text-xs font-bold text-blue-800">審査状況</p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                  <div>
+                                                    <label className="block text-xs font-medium text-blue-700 mb-1">ステータス</label>
+                                                    <select
+                                                      className="w-full text-sm px-3 py-2 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white"
+                                                      value={app.screeningStatus || '審査中'}
+                                                      onChange={(e) => handleUpdateApplication(phase.id, task.id, app.id, 'screeningStatus', e.target.value)}
+                                                    >
+                                                      <option value="審査中">審査中</option>
+                                                      <option value="審査通過">審査通過</option>
+                                                      <option value="審査落ち(アーカイブ)">審査落ち (アーカイブ)</option>
+                                                    </select>
+                                                  </div>
+                                                  <div className="sm:col-span-2">
+                                                    <label className="block text-xs font-medium text-blue-700 mb-1">審査メモ (保証会社の変更履歴など)</label>
+                                                    <textarea 
+                                                      className="w-full text-sm px-3 py-2 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow bg-white"
+                                                      rows={2}
+                                                      placeholder="例: A社否決のため、B社で再審査中"
+                                                      value={app.screeningNotes || ''}
+                                                      onChange={(e) => handleUpdateApplication(phase.id, task.id, app.id, 'screeningNotes', e.target.value)}
+                                                    />
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          )})}
+                                          
+                                          <button 
+                                            onClick={() => handleAddApplication(phase.id, task.id)}
+                                            className="w-full py-2 border-2 border-dashed border-slate-300 text-slate-500 rounded-lg hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center space-x-2 text-sm font-medium"
+                                          >
+                                            <Plus className="w-4 h-4" />
+                                            <span>申込物件を追加</span>
+                                          </button>
+                                        </div>
                                       ) : (
                                         <p className={`text-xs sm:text-sm transition-colors ${task.completed ? 'text-slate-400' : 'text-slate-500'}`}>
                                           {task.description}
@@ -1478,7 +1706,7 @@ export default function App() {
                                     }
 
                                     return (
-                                      <div key={factor.id} className={`space-y-2 ${factor.type === 'textarea' || factor.type === 'checkbox_group' || factor.id.endsWith('-other') ? 'md:col-span-2' : ''}`}>
+                                      <div key={factor.id} className={`space-y-2 ${factor.type === 'textarea' || factor.type === 'checkbox_group' || factor.type === 'fee_timing_group' || factor.id.endsWith('-other') ? 'md:col-span-2' : ''}`}>
                                         <label className="text-xs font-semibold text-slate-600">{factor.title}</label>
                                         
                                         {(factor.type === 'text' || factor.type === 'textarea') && (
@@ -1519,6 +1747,92 @@ export default function App() {
                                               </label>
                                             )
                                           })}
+                                        </div>
+                                      )}
+
+                                      {factor.type === 'date' && (
+                                        <div className="flex items-center space-x-3">
+                                          <input 
+                                            type="date" 
+                                            value={factor.value || ''} 
+                                            onChange={(e) => handleFactorChange(phase.id, factor.id, e.target.value)} 
+                                            className="flex-1 text-sm px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
+                                          />
+                                          {factor.value && (
+                                            <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1.5 rounded-md">
+                                              {calculateAgeAndEra(factor.value)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {factor.type === 'fee_timing_group' && (
+                                        <div className="space-y-3">
+                                          <div className="flex flex-wrap gap-2">
+                                            {['敷金ゼロ', '礼金ゼロ', 'フリーレント希望', 'ネット無料'].map(opt => {
+                                              const isChecked = (factor.value as string[] || []).includes(opt);
+                                              return (
+                                                <label key={opt} className={`flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors ${isChecked ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                                                  <input 
+                                                    type="checkbox" 
+                                                    className="hidden" 
+                                                    checked={isChecked} 
+                                                    onChange={(e) => {
+                                                      const current = factor.value as string[] || [];
+                                                      const next = e.target.checked ? [...current, opt] : current.filter(c => c !== opt);
+                                                      handleFactorChange(phase.id, factor.id, next);
+                                                    }} 
+                                                  />
+                                                  <div className={`w-3 h-3 rounded-sm border flex items-center justify-center transition-colors ${isChecked ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                                                    {isChecked && <CheckCircle2 className="w-2.5 h-2.5 text-white" />}
+                                                  </div>
+                                                  <span>{opt}</span>
+                                                </label>
+                                              )
+                                            })}
+                                          </div>
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {['部屋清掃費', '水廻り消毒代', 'FF清掃費', 'エアコン清掃費'].map(opt => {
+                                              const contractOpt = `${opt}(契約時)`;
+                                              const moveoutOpt = `${opt}(退去時)`;
+                                              const isContractChecked = (factor.value as string[] || []).includes(contractOpt);
+                                              const isMoveoutChecked = (factor.value as string[] || []).includes(moveoutOpt);
+                                              
+                                              return (
+                                                <div key={opt} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-md border border-slate-200">
+                                                  <span className="text-sm font-medium text-slate-700">{opt}</span>
+                                                  <div className="flex items-center space-x-4">
+                                                    <label className="flex items-center space-x-1.5 cursor-pointer">
+                                                      <input 
+                                                        type="checkbox" 
+                                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                                        checked={isContractChecked}
+                                                        onChange={(e) => {
+                                                          const current = factor.value as string[] || [];
+                                                          const next = e.target.checked ? [...current, contractOpt] : current.filter(c => c !== contractOpt);
+                                                          handleFactorChange(phase.id, factor.id, next);
+                                                        }}
+                                                      />
+                                                      <span className="text-xs text-slate-600">契約時</span>
+                                                    </label>
+                                                    <label className="flex items-center space-x-1.5 cursor-pointer">
+                                                      <input 
+                                                        type="checkbox" 
+                                                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                                        checked={isMoveoutChecked}
+                                                        onChange={(e) => {
+                                                          const current = factor.value as string[] || [];
+                                                          const next = e.target.checked ? [...current, moveoutOpt] : current.filter(c => c !== moveoutOpt);
+                                                          handleFactorChange(phase.id, factor.id, next);
+                                                        }}
+                                                      />
+                                                      <span className="text-xs text-slate-600">退去時</span>
+                                                    </label>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
                                         </div>
                                       )}
                                     </div>
